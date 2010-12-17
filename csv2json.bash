@@ -10,9 +10,6 @@
 # Hold on to the original IFS value.
 _IFS=$IFS;
 
-# The output we're building.
-OUTPUT='';
-
 # Return (via `echo`) string name for the attribute
 # @param attribute row
 # @param index.
@@ -29,8 +26,8 @@ function get_attribute {
   IFS=_IFS;
 }
 
-# Transform a comma seperated row into JSON. Places the JSON string in the
-# `OUTPUT` variable.
+# Transform a comma seperated row into JSON. `echo`s the JSON string as it is
+# built.
 # @param attribute row
 # @param input to parse
 function parse_row {
@@ -38,29 +35,29 @@ function parse_row {
   INDEX=0;
   for ELEM in $2; do
     if [ $INDEX == '0' ]; then
-      OUTPUT="$OUTPUT '$ELEM': {";
+      echo "'$ELEM': {";
     else
       IFS=_IFS;
-      COL=$(get_attribute $1 $INDEX);
-      OUTPUT="$OUTPUT '$COL': '$ELEM',";
+      echo "'$(get_attribute $1 $INDEX)': '$ELEM',";
       IFS=',';
     fi
     INDEX=$((INDEX+1));
   done
-  OUTPUT="$OUTPUT },";
+  echo "},";
   IFS=_IFS;
 }
 
 # Parse a file, line by line
 # @param filename to parse
 function parse_file {
-  FILE=$1;
+  OUTPUT='';
   ATTR='';
-  for LINE in $(cat $FILE) ; do
+
+  for LINE in $(cat $1) ; do
     if [ -z $ATTR ]; then
       ATTR=$LINE;
     else
-      parse_row $ATTR $LINE;
+      echo "$OUTPUT $(parse_row $ATTR $LINE)";
     fi
   done;
 }
@@ -69,7 +66,6 @@ if [ ! -f $1 ]; then
   echo "Not a valid file.";
   exit 1;
 else
-  parse_file $1;
-  echo $OUTPUT;
+  echo $(parse_file $1);
 fi
 
