@@ -54,7 +54,8 @@ function parse_row {
   IFS=_IFS;
 }
 
-#Validate the header
+# Validate the header and return (via `echo`) it's length.
+# - TODO real validation...
 function process_header {
   IFS=',';
   COLS=0
