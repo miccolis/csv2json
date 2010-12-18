@@ -69,6 +69,7 @@ function process_header {
 function parse_file {
   OUTPUT='';
   ATTR='';
+  COMMA=0;
 
   # TODO probably need to set the IFS to \n
   for LINE in $(cat $1) ; do
@@ -76,12 +77,15 @@ function parse_file {
       COLS=$(process_header $LINE);
       ATTR=$LINE;
     else
-      echo "$OUTPUT $(parse_row $ATTR $COLS $LINE)";
-      if [ 1 ]; then
-        echo ',';
-      fi;
+      if [ $COMMA -gt 0 ]; then
+        OUTPUT="$OUTPUT,";
+      else
+        COMMA=1;
+      fi
+      OUTPUT="$OUTPUT $(parse_row $ATTR $COLS $LINE)";
     fi
   done;
+  echo $OUTPUT;
 }
 
 if [ ! -f $1 ]; then
