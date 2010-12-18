@@ -61,6 +61,7 @@ function process_header {
   for COL in $1; do
     COLS=$(($COLS+1));
   done;
+  IFS=_IFS;
   echo $COLS;
 }
 
