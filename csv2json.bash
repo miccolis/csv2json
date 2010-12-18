@@ -6,7 +6,6 @@
 # - first line is a header row.
 # - column names are all simple (no spaces or commas, etc)
 # - first item on a row is key of the object.
-# - trailing commas are ok
 
 # Hold on to the original IFS value.
 _IFS=$IFS;
@@ -79,7 +78,7 @@ function parse_file {
       COLS=$(process_header $LINE);
       ATTR=$LINE;
     else
-      if [ $COMMA -gt 0 ]; then
+      if [ $COMMA == 1 ]; then
         OUTPUT="$OUTPUT,";
       else
         COMMA=1;
