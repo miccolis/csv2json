@@ -35,7 +35,7 @@ function parse_row {
   INDEX=0;
   for ELEM in $3; do
     if [ $INDEX == '0' ]; then
-      echo "'$ELEM': {";
+      echo "\"$ELEM\": {";
     else
       # It's possible that we're in the midst of a cell that contained a
       # comma
@@ -64,7 +64,7 @@ function parse_row {
         fi
       fi
       IFS=_IFS;
-      echo "'$(get_attribute $1 $INDEX)': '$ELEM'";
+      echo "\"$(get_attribute $1 $INDEX)\": \"$ELEM\"";
       IFS=',';
 
       # If this isn't the last element add a comma.
@@ -120,6 +120,8 @@ if [ ! -f $1 ]; then
   echo "Not a valid file.";
   exit 1;
 else
-  echo $(parse_file $1);
+  echo -n '{';
+  echo -n $(parse_file $1);
+  echo '}';
 fi
 
