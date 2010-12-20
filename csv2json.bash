@@ -1,7 +1,6 @@
 #!/bin/bash
 
 # assumptions
-# - simple csv, no commas in cells
 # - no multi-line rows
 # - first line is a header row.
 # - column names are all simple (no spaces or commas, etc)
