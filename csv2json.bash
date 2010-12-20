@@ -38,6 +38,32 @@ function parse_row {
     if [ $INDEX == '0' ]; then
       echo "'$ELEM': {";
     else
+      # It's possible that we're in the midst of a cell that contained a
+      # comma
+      if [ "$PREVE" ]; then
+        ELEM="$PREVE,$ELEM";
+        unset PREVE;
+        # Check for, and remove a closing quote here too.
+        if [ ${ELEM:$((${#ELEM}-1))} == '"' ]; then
+          ELEM=${ELEM:0:$((${#ELEM}-1))};
+        else
+          # Don't find the closing double quote? Keep looking.
+          PREVE=$ELEM;
+          continue;
+        fi
+      # Check for, and remove, a leading double quote.
+      elif [ ${ELEM:0:1} == '"' ]; then
+        ELEM=${ELEM:1};
+        # Check for, and remove a closing quote.
+        if [ ${ELEM:$((${#ELEM}-1))} == '"' ]; then
+          ELEM=${ELEM:0:$((${#ELEM}-1))};
+        else
+          # If there is no closing double quote this cell isn't complete and we
+          # need the value of the next cell.
+          PREVE=$ELEM;
+          continue;
+        fi
+      fi
       IFS=_IFS;
       echo "'$(get_attribute $1 $INDEX)': '$ELEM'";
       IFS=',';
@@ -72,7 +98,7 @@ function parse_file {
   ATTR='';
   COMMA=0;
 
-  # TODO probably need to set the IFS to \n
+  # Set the IFS to \n
   IFS=$'\n';
   for LINE in $(cat $1) ; do
     if [ -z $ATTR ]; then
