@@ -73,6 +73,7 @@ function parse_file {
   COMMA=0;
 
   # TODO probably need to set the IFS to \n
+  IFS=$'\n';
   for LINE in $(cat $1) ; do
     if [ -z $ATTR ]; then
       COLS=$(process_header $LINE);
@@ -86,6 +87,7 @@ function parse_file {
       OUTPUT="$OUTPUT $(parse_row $ATTR $COLS $LINE)";
     fi
   done;
+  IFS=_IFS;
   echo $OUTPUT;
 }
 
