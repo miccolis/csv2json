@@ -35,7 +35,7 @@ function parse_row {
   INDEX=0;
   for ELEM in $3; do
     if [ $INDEX == '0' ]; then
-      echo "\"$ELEM\": {";
+      echo -n "\"$ELEM\": {";
     else
       # It's possible that we're in the midst of a cell that contained a
       # comma
@@ -43,6 +43,7 @@ function parse_row {
         ELEM="$PREVE,$ELEM";
         unset PREVE;
         # Check for, and remove a closing quote here too.
+        # TODO besure the quote isn't escaped.
         if [ ${ELEM:$((${#ELEM}-1))} == '"' ]; then
           ELEM=${ELEM:0:$((${#ELEM}-1))};
         else
@@ -64,17 +65,17 @@ function parse_row {
         fi
       fi
       IFS=_IFS;
-      echo "\"$(get_attribute $1 $INDEX)\": \"$ELEM\"";
+      echo -n "\"$(get_attribute $1 $INDEX)\": \"$ELEM\"";
       IFS=',';
 
       # If this isn't the last element add a comma.
       if [ $INDEX -lt $(($2 - 1)) ]; then
-        echo ',';
+        echo -n ',';
       fi;
     fi
     INDEX=$((INDEX+1));
   done
-  echo "}";
+  echo -n "}";
   IFS=_IFS;
 }
 
@@ -92,36 +93,35 @@ function process_header {
 
 # Parse a file, line by line
 # @param filename to parse
-function parse_file {
-  OUTPUT='';
+function parse_input {
   ATTR='';
   COMMA=0;
 
-  # Set the IFS to \n
+  echo -n '{';
   IFS=$'\n';
-  for LINE in $(cat $1) ; do
+  while read LINE; do
     if [ -z $ATTR ]; then
       COLS=$(process_header $LINE);
       ATTR=$LINE;
     else
       if [ $COMMA == 1 ]; then
-        OUTPUT="$OUTPUT,";
+        echo -n ", ";
       else
         COMMA=1;
       fi
-      OUTPUT="$OUTPUT $(parse_row $ATTR $COLS $LINE)";
+      echo -n $(parse_row $ATTR $COLS $LINE);
     fi
   done;
   IFS=_IFS;
-  echo $OUTPUT;
+  echo '}';
 }
 
-if [ ! -f $1 ]; then
+if [ -z $1 ]; then
+  parse_input;
+elif [ -f $1 ]; then
+  cat $1 | $0;
+else
   echo "Not a valid file.";
   exit 1;
-else
-  echo -n '{';
-  echo -n $(parse_file $1);
-  echo '}';
 fi
 
