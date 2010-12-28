@@ -2,10 +2,12 @@
 
 # assumptions
 # - no multi-line rows
-# - support escaped quotes ("") in cells.
+# - support for escaped quotes ("") in cells.
 # - first line is a header row.
 # - column names are all simple (no spaces or commas, etc)
 # - first item on a row is key of the object.
+
+# http://tools.ietf.org/html/rfc4180
 
 # Hold on to the original IFS value.
 _IFS=$IFS;
@@ -27,6 +29,38 @@ function get_attribute {
   IFS=_IFS;
 }
 
+# We need to `unescape` the quotes, this means de-duping quotes and
+# removing trailing quotes, and JSON escape them. ...converted to single quotes for now...
+# @param string to unescape.
+function escape_convert {
+  local ELEM=$1;
+  local FOUND;
+  local POS=0;
+  local LEN=${#ELEM};
+
+  while [ "$POS" -lt "$LEN" ]; do
+    if [ "${ELEM:$POS:1}" == '"' ]; then
+      if [ -z "$FOUND" ]; then
+        FOUND=$POS;
+      elif [ "$FOUND" == "$((POS-1))" ]; then
+        ELEM="${ELEM:0:$((POS-1))}'${ELEM:$((POS+1))}"
+        unset FOUND;
+        POS=$((POS-1));
+      else
+        # TODO proper error handling, we've ended the cell prematurely because it
+        # was badly formatted. (it had an unescaped quote in the  middle of the
+        # cell.
+        echo ${ELEM:0:$FOUND};
+        return 1;
+      fi
+    fi
+    POS=$((POS+1));
+  done;
+
+  echo $ELEM;
+  return 0;
+}
+
 # Transform a comma seperated row into JSON. `echo`s the JSON string as it is
 # built.
 # @param attribute row
@@ -42,8 +76,8 @@ function parse_row {
       echo -n "\"$ELEM\": {";
     else
       # It's possible that we're:
-      # a) in the midst of a cell that contained a comma, or
-      # b) at the start of cell that begins with a comma.
+      # a) in the midst of a quoted cell that contained a comma, or
+      # b) at the start of quoted cell.
       if [ -n "$PREVE" -o ${ELEM:0:1} == '"' ]; then
         # In case 'a'...
         [ -n "$PREVE" ] && ELEM="$PREVE,$ELEM" && unset PREVE;
@@ -60,7 +94,10 @@ function parse_row {
         fi
       fi
 
-      IFS=_IFS;
+      IFS=$'\n';
+      ELEM=$(escape_convert $ELEM)
+
+      IFS=' ';
       echo -n "\"$(get_attribute $1 $INDEX)\": \"$ELEM\"";
       IFS=',';
 
@@ -92,26 +129,27 @@ function process_header {
 # @param filename to parse
 function parse_input {
   local ATTR='';
-  local COMMA=0;
+  COMMA=0;
+
+  # Process header.
+  read;
+  COLS=$(process_header $REPLY);
+  ATTR=$REPLY;
 
   echo -n '{';
   IFS=$'\n';
   while read LINE; do
-    if [ -z $ATTR ]; then
-      COLS=$(process_header $LINE);
-      ATTR=$LINE;
+    if [ $COMMA == 1 ]; then
+      echo -n ", ";
     else
-      if [ $COMMA == 1 ]; then
-        echo -n ", ";
-      else
-        COMMA=1;
-      fi
-      echo -n $(parse_row $ATTR $COLS $LINE);
+      COMMA=1;
     fi
+    echo -n $(parse_row $ATTR $COLS $LINE);
   done;
   IFS=_IFS;
   echo '}';
 }
+
 
 if [ -z $1 ]; then
   parse_input;
