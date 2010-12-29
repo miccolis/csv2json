@@ -1,13 +1,14 @@
 #!/bin/bash
-
-# assumptions
-# - no multi-line rows
-# - support for escaped quotes ("") in cells.
+#
+# Assumptions
 # - first line is a header row.
 # - column names are all simple (no spaces or commas, etc)
-# - first item on a row is key of the object.
-
-# http://tools.ietf.org/html/rfc4180
+# - first item on a row is key of the object, and is simple.
+#
+# Limitations
+# - no multi-line rows
+#
+#  See also the CSV spec - http://tools.ietf.org/html/rfc4180
 
 # Hold on to the original IFS value.
 _IFS=$IFS;
@@ -21,7 +22,6 @@ function process_header {
   for COL in $1; do
     COLS=$(($COLS+1));
   done;
-  IFS=_IFS;
   echo $COLS;
 }
 
@@ -39,7 +39,6 @@ function get_attribute {
     fi
     INDEX=$((INDEX-1));
   done;
-  IFS=_IFS;
 }
 
 # We need to `unescape` the quotes, this means de-duping quotes and
@@ -77,10 +76,11 @@ function escape_convert {
 # Parse a file, line by line
 # @param filename to parse
 function parse_input {
-  local ATTR='';
   local COMMA=0;
   local ELEM='';
   local INDEX=0;
+  local PELEM='';
+  local PINDEX='';
 
   # Process header.
   read;
@@ -109,11 +109,11 @@ function parse_input {
         # b) in the midst of a quoted cell that contained a comma, or
         # c) in the midst of a quoted cell that contained a `\n`
         IFS=$'\n';
-        if [ -n "$PREVE" -o ${ELEM:0:1} == '"' ]; then
+        if [ -n "$PELEM" -o ${ELEM:0:1} == '"' ]; then
           # In case 'a'...
           [ ${ELEM:0:1} == '"' ] && ELEM=${ELEM:1};
           # In case 'b'...
-          [ -n "$PREVE" ] && ELEM="$PREVE,$ELEM" && unset PREVE;
+          [ -n "$PELEM" ] && ELEM="$PELEM,$ELEM" && unset PELEM;
           # In case 'c'...
 
           # Check for, and remove a closing quote here too.
@@ -122,7 +122,7 @@ function parse_input {
             ELEM=${ELEM:0:$((${#ELEM}-1))};
           else
             # Don't find the closing double quote? Keep looking.
-            PREVE=$ELEM;
+            PELEM=$ELEM;
             continue;
           fi
         fi;
