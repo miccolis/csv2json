@@ -92,7 +92,6 @@ function convert_file {
           # If we don't have output and we're at the end of the line we've got
           # a line break in the cell, so pull the next line in.
           if [ -z "$OUT" -a $((POS+1)) == ${#LINE} ]; then
-            # TODO this newline creation is broken.
             read && LINE="$LINE\n$REPLY";
           fi
         fi
