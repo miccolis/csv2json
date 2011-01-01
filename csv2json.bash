@@ -5,10 +5,9 @@
 # - column names are all simple (no spaces or commas, etc)
 # - first item on a row is key of the object, and is simple.
 #
-# Limitations
-# - no multi-line rows
-#
-#  See also the CSV spec - http://tools.ietf.org/html/rfc4180
+#  See also:
+#   CSV RFC - http://tools.ietf.org/html/rfc4180
+#   JSON - http://www.json.org/
 
 # Hold on to the original IFS value.
 _IFS=$IFS;
@@ -39,38 +38,6 @@ function get_attribute {
     fi
     INDEX=$((INDEX-1));
   done;
-}
-
-# We need to `unescape` the quotes, this means de-duping quotes and
-# removing trailing quotes, and JSON escape them. ...converted to single quotes for now...
-# @param string to unescape.
-function escape_convert {
-  local ELEM=$1;
-  local FOUND;
-  local POS=0;
-  local LEN=${#ELEM};
-
-  while [ "$POS" -lt "$LEN" ]; do
-    if [ "${ELEM:$POS:1}" == '"' ]; then
-      if [ -z "$FOUND" ]; then
-        FOUND=$POS;
-      elif [ "$FOUND" == "$((POS-1))" ]; then
-        ELEM="${ELEM:0:$((POS-1))}'${ELEM:$((POS+1))}"
-        unset FOUND;
-        POS=$((POS-1));
-      else
-        # TODO proper error handling, we've ended the cell prematurely because it
-        # was badly formatted. (it had an unescaped quote in the  middle of the
-        # cell.
-        echo ${ELEM:0:$FOUND};
-        return 1;
-      fi
-    fi
-    POS=$((POS+1));
-  done;
-
-  echo $ELEM;
-  return 0;
 }
 
 function convert_file {
@@ -110,8 +77,10 @@ function convert_file {
             OUT=${LINE:0:$((POS+1))} && LINE=${LINE:$POS} && break;
           fi
         else
-          ## Two double quotes are an `escaped` quote, ignore them.
+          ## Two double quotes are an `escaped` quote, switch to JSON escapes.
           if [ $((POS+1)) -lt ${#LINE} -a ${LINE:$POS:2} == '""' ]; then
+            ESCAPED='\"';
+            LINE="${LINE:0:$POS}$ESCAPED${LINE:$((POS+2))}"
             POS=$((POS+1));
           elif [ "${LINE:$POS:1}" == '"' ];then
             # TODO error handling if a cell is prematurely closed.
@@ -126,9 +95,6 @@ function convert_file {
         fi
         POS=$((POS+1));
       done;
-
-      IFS=$'\a'; # Split on the `bell`, they'll never use that!
-      OUT=$(escape_convert $OUT)
 
       if [ $INDEX == 0 ]; then
         echo -n "\"$OUT\": {";
