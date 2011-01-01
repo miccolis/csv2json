@@ -53,7 +53,7 @@ function convert_file {
 
   # Process header.
   read;
-  local COLS=$(process_header $REPLY);
+  local COLS=$(process_header "$REPLY");
   local ATTR=$REPLY;
   
   # Read and process lines.
