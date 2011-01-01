@@ -2,7 +2,6 @@
 #
 # Assumptions
 # - first line is a header row.
-# - column names are all simple (no spaces or commas, etc)
 # - first item on a row is key of the object, and is simple.
 #
 #  See also:
@@ -25,15 +24,19 @@ function process_header {
 }
 
 # Return (via `echo`) string name for the attribute
-# @param attribute row
 # @param index.
+# @param attribute row
 function get_attribute {
-  local INDEX=$2;
+  local INDEX=$1;
 
   IFS=',';
-  for COL in $1; do
+  for COL in $2; do
     if [ $INDEX == '0' ]; then
-      echo "$COL";
+      if [ ${COL:0:1} == '"' -a ${COL:$((${#FOO}-1)):1} == '"' ]; then
+        echo "$COL";
+      else
+        echo "\"$COL\"";
+      fi
       return 0;
     fi
     INDEX=$((INDEX-1));
@@ -65,7 +68,7 @@ function convert_file {
 
       # If this is a complex cell, unset the simple flag and strip the leading
       # double quote.
-      [ ${LINE:0:1} == '"' ] && SIMPLE=0 && LINE=${LINE:1};
+      [ "${LINE:0:1}" == '"' ] && SIMPLE=0 && LINE=${LINE:1};
 
       # Walk the line, striping off completed cells.
       while [ $POS -lt ${#LINE} ]; do
@@ -78,7 +81,7 @@ function convert_file {
           fi
         else
           ## Two double quotes are an `escaped` quote, switch to JSON escapes.
-          if [ $((POS+1)) -lt ${#LINE} -a ${LINE:$POS:2} == '""' ]; then
+          if [ $((POS+1)) -lt ${#LINE} -a "${LINE:$POS:2}" == '""' ]; then
             ESCAPED='\"';
             LINE="${LINE:0:$POS}$ESCAPED${LINE:$((POS+2))}"
             POS=$((POS+1));
@@ -100,14 +103,14 @@ function convert_file {
         echo -n "\"$OUT\": {";
       else
         IFS=' ';
-        echo -n "\"$(get_attribute $ATTR $INDEX)\": \"$OUT\"";
+        echo -n "$(get_attribute $INDEX "$ATTR"): \"$OUT\"";
       fi
 
       unset OUT;
       INDEX=$((INDEX+1));
     done;
     echo -n "}" && COUNT=$((COUNT+1));
-    unset LINE && read && LINE=$REPLY && POS=0 && INDEX=0 && SIMPLE=1;
+    unset LINE && read && LINE=$REPLY && INDEX=0;
   done;
 }
 
