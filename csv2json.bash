@@ -3,6 +3,11 @@
 # Assumptions
 # - first line is a header row.
 # - first item on a row is key of the object, and is simple.
+# - Unescaped quotes within cells are tolerated, and escaped.
+#
+# Limitations
+# - Does not support semicolon as seperator.
+# - "Simple" fields cannot contain  linebreaks.
 #
 #  See also:
 #   CSV RFC - http://tools.ietf.org/html/rfc4180
@@ -80,13 +85,20 @@ function convert_file {
             OUT=${LINE:0:$((POS+1))} && LINE=${LINE:$POS} && break;
           fi
         else
-          ## Two double quotes are an `escaped` quote, switch to JSON escapes.
+          # Two double quotes are an `escaped` quote, switch to JSON escapes.
           if [ $((POS+1)) -lt ${#LINE} -a "${LINE:$POS:2}" == '""' ]; then
             ESCAPED='\"';
             LINE="${LINE:0:$POS}$ESCAPED${LINE:$((POS+2))}"
             POS=$((POS+1));
-          elif [ "${LINE:$POS:1}" == '"' ];then
-            # TODO error handling if a cell is prematurely closed.
+          elif [ "${LINE:$POS:1}" == '"' ]; then
+            # Sometimes there will be an unescaped quote in the middle of a
+            # cell. This isn't allowed, but we're going to tolerate it for now.
+            # TODO Remove this.
+            if [ "${LINE:$POS:2}" != '",' -a $((POS+1)) != ${#LINE} ]; then
+              ESCAPED='\"';
+              LINE="${LINE:0:$POS}$ESCAPED${LINE:$((POS+2))}";
+              POS=$((POS+2)) && continue;
+            fi
             OUT=${LINE:0:$POS} && LINE=${LINE:$((POS+2))} && break;
           fi
           # If we don't have output and we're at the end of the line we've got
