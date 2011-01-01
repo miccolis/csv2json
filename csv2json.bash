@@ -163,18 +163,20 @@ function convert_file {
   while [ -n "$LINE" ]; do
     [ $COUNT -gt 0 ] && echo -n ',';
     while [ $INDEX -lt $COLS ]; do
+      SIMPLE=1 && POS=0;
+
+      # After the first element we'll need a comma.
       [ $INDEX -gt 1 ] && echo -n ',';
+
       # If this is a complex cell, unset the simple flag and strip the leading
       # double quote.
-      if [ ${LINE:0:1} == '"' ]; then
-        SIMPLE=0;
-        LINE=${LINE:1};
-      fi
+      [ ${LINE:0:1} == '"' ] && SIMPLE=0 && LINE=${LINE:1};
+
       # Walk the line, striping off completed cells.
       while [ $POS -lt ${#LINE} ]; do
         if [ $SIMPLE == 1 ]; then
           if [ "${LINE:$POS:1}" == ',' ]; then
-            OUT=${LINE:0:$POS} && LINE=${LINE:$((POS+1))} && POS=0 && break;
+            OUT=${LINE:0:$POS} && LINE=${LINE:$((POS+1))} && break;
           elif [ $((POS+1)) == ${#LINE} -a $((INDEX+1)) == $COLS ]; then
             # TODO error handling if a line is missing cells.
             OUT=${LINE:0:$((POS+1))} && LINE=${LINE:$POS} && break;
@@ -185,8 +187,7 @@ function convert_file {
             POS=$((POS+1));
           elif [ "${LINE:$POS:1}" == '"' ];then
             # TODO error handling if a cell is prematurely closed.
-            SIMPLE=1 && POS=0;
-            OUT=${LINE:0:$POS} && LINE=${LINE:$POS} && break;
+            OUT=${LINE:0:$POS} && LINE=${LINE:$((POS+2))} && break;
           fi
           # If we don't have output and we're at the end of the line we've got
           # a line break in the cell, so pull the next line in.
