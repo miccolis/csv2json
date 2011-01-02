@@ -67,10 +67,6 @@ function convert_file {
     [ $COUNT -gt 0 ] && echo -n ',';
     while [ $INDEX -lt $COLS ]; do
       SIMPLE=1 && POS=0;
-
-      # After the first element we'll need a comma.
-      [ $INDEX -gt 1 ] && echo -n ',';
-
       # If this is a complex cell, unset the simple flag and strip the leading
       # double quote.
       [ "${LINE:0:1}" == '"' ] && SIMPLE=0 && LINE=${LINE:1};
@@ -110,26 +106,26 @@ function convert_file {
         POS=$((POS+1));
       done;
 
-      if [ $INDEX == 0 ]; then
-        echo -n "\"$OUT\": {";
-      else
-        IFS=' ';
-        echo -n "$(get_attribute $INDEX "$ATTR"): \"$OUT\"";
-      fi
+      [ $INDEX == 0 ] && printf '%s' "{";
+      [ $INDEX -gt 0 ] && printf '%s' ',';
+
+      IFS=' ';
+      printf '%s' "$(get_attribute $INDEX "$ATTR"): \"$OUT\"";
 
       unset OUT;
       INDEX=$((INDEX+1));
     done;
     echo -n "}" && COUNT=$((COUNT+1));
     unset LINE && read && LINE=$REPLY && INDEX=0;
+    #echo "Count $COUNT :: Next -> ${LINE:0:34}" 1>&2;
   done;
 }
 
 
 if [ -z $1 ]; then
-  echo -n '{';
+  echo -n '[';
   convert_file
-  echo '}';
+  echo ']';
 elif [ -f $1 ]; then
   cat $1 | $0;
 else
