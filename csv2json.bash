@@ -92,7 +92,7 @@ function convert_file {
             # TODO Remove this.
             if [ "${LINE:$POS:2}" != '",' -a $((POS+1)) != ${#LINE} ]; then
               ESCAPED='\"';
-              LINE="${LINE:0:$POS}$ESCAPED${LINE:$((POS+2))}";
+              LINE="${LINE:0:$POS}$ESCAPED${LINE:$((POS+1))}";
               POS=$((POS+2)) && continue;
             fi
             OUT=${LINE:0:$POS} && LINE=${LINE:$((POS+2))} && break;
