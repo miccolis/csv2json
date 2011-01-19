@@ -123,9 +123,9 @@ function convert_file {
 
 
 if [ -z $1 ]; then
-  echo -n '[';
+  echo -n '{"docs":[';
   convert_file
-  echo ']';
+  echo ']}';
 elif [ -f $1 ]; then
   cat $1 | $0;
 else
